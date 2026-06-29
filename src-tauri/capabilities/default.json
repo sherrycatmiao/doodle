@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for Doodle windows",
+  "windows": ["widget", "panel", "aichat"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-close",
+    "core:window:allow-create",
+    "core:window:allow-start-dragging",
+    "core:webview:default",
+    "core:webview:allow-create-webview-window",
+    "core:webview:allow-internal-toggle-devtools",
+    "opener:default",
+    "shell:default",
+    "global-shortcut:default"
+  ]
+}
