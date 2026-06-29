@@ -27,15 +27,27 @@ export const AIInputBar: React.FC<Props> = ({ onOpenPanel, year, month }) => {
   }, []);
 
   const getOrCreateBlock = (blockName: string) => {
+    // Try exact match first
     let block = blocks.find(b => b.name === blockName);
-    if (!block) {
-      // Try to find a matching block by keyword match
-      block = blocks.find(b => blockName.includes(b.name) || b.name.includes(blockName));
+    if (block) return block;
+
+    // Try case-insensitive match
+    block = blocks.find(b => b.name.toLowerCase() === blockName.toLowerCase());
+    if (block) return block;
+
+    // Try partial match: block name contains AI's result or vice versa
+    block = blocks.find(b => blockName.includes(b.name) || b.name.includes(blockName));
+    if (block) return block;
+
+    // Try keyword matching — e.g. "买东西" matches block name "购物清单" via "买" keyword
+    const keywords = blockName.replace(/[的了我]/g, '').split('').filter(c => c.match(/[一-鿿]/));
+    for (const keyword of keywords) {
+      block = blocks.find(b => b.name.includes(keyword));
+      if (block) return block;
     }
-    if (!block) {
-      // Fall back to "待办" or first available
-      block = blocks.find(b => b.name === '待办') || blocks[0];
-    }
+
+    // Fall back to "待办" or first available
+    block = blocks.find(b => b.name === '待办') || blocks[0];
     return block;
   };
 
@@ -75,13 +87,14 @@ export const AIInputBar: React.FC<Props> = ({ onOpenPanel, year, month }) => {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
           placeholder="记录灵感、待办... (Alt+Space)"
-          className="flex-1 h-8 text-xs bg-transparent border-0 shadow-none px-1 placeholder:text-muted-foreground/30"
+          className="flex-1 h-8 bg-transparent border-0 shadow-none px-1 placeholder:text-muted-foreground/30" style={{ fontSize: '1em' }}
         />
         <Button
           onClick={handleSubmit}
           disabled={loading || !text.trim()}
           size="sm"
-          className="h-7 text-[11px] px-2.5 gap-1"
+          className="h-7 px-2.5 gap-1"
+          style={{ fontSize: '0.85em' }}
         >
           {loading ? <span className="animate-pulse">...</span> : <><Sparkles className="h-3 w-3" /> 记录</>}
         </Button>
@@ -89,7 +102,8 @@ export const AIInputBar: React.FC<Props> = ({ onOpenPanel, year, month }) => {
           onClick={onOpenPanel}
           variant="ghost"
           size="sm"
-          className="h-7 text-[11px] px-2 gap-1 text-foreground/50 hover:text-foreground"
+          className="h-7 px-2 gap-1 text-foreground/50 hover:text-foreground"
+          style={{ fontSize: '0.85em' }}
         >
           <PanelRightOpen className="h-3 w-3" />
         </Button>

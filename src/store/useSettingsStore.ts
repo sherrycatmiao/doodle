@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+	import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import type { ThemeConfig, ThemeName, ThemeMode } from '../types';
 import { emitSettingsChanged } from '@/lib/events';
@@ -13,6 +13,7 @@ interface SettingsState {
   setWidgetOpacity: (opacity: number) => Promise<void>;
   setWidgetColor: (color: string) => Promise<void>;
   setPanelColor: (color: string) => Promise<void>;
+  setWidgetFontSize: (size: number) => Promise<void>;
   setAiKey: (key: string) => Promise<void>;
 }
 
@@ -22,6 +23,7 @@ const defaultConfig: ThemeConfig = {
   widget_opacity: 0.85,
   widget_primary_color: '#6366f1',
   panel_primary_color: '#6366f1',
+  widget_font_size: 11,
   ai_api_key: '',
   ai_model: 'claude-sonnet-4-6',
   ai_endpoint: 'https://api.anthropic.com/v1/messages',
@@ -40,6 +42,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         case 'mode': config.mode = value as ThemeMode; break;
         case 'widget_primary_color': config.widget_primary_color = value; break;
         case 'panel_primary_color': config.panel_primary_color = value; break;
+        case 'widget_font_size': config.widget_font_size = parseInt(value, 10); break;
         case 'ai_api_key': config.ai_api_key = value; break;
         case 'ai_model': config.ai_model = value; break;
         case 'ai_endpoint': config.ai_endpoint = value; break;
@@ -57,5 +60,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setWidgetOpacity: async (opacity) => { await get().setSetting('widget_opacity', opacity.toString()); },
   setWidgetColor: async (color) => { await get().setSetting('widget_primary_color', color); },
   setPanelColor: async (color) => { await get().setSetting('panel_primary_color', color); },
+  setWidgetFontSize: async (size) => { await get().setSetting('widget_font_size', size.toString()); },
   setAiKey: async (key) => { await get().setSetting('ai_api_key', key); },
 }));

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow, Effect } from '@tauri-apps/api/window';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { CalendarHeader } from './CalendarHeader';
@@ -11,6 +12,14 @@ import { useItemsStore } from '@/store/useItemsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { invoke } from '@tauri-apps/api/core';
 import { onDataChanged, onSettingsChanged } from '@/lib/events';
+
+/** Convert hex to rgba */
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 export const WidgetWindow = () => {
   const now = new Date();
@@ -27,6 +36,19 @@ export const WidgetWindow = () => {
 
   useEffect(() => { fetchBlocks(); }, []);
   useEffect(() => { fetchCalendarMonth(year, month); }, [year, month]);
+
+  // Enable Windows Acrylic backdrop for native frosted glass effect
+  useEffect(() => {
+    try {
+      const win = getCurrentWindow();
+      win.setEffects({ effects: [Effect.Acrylic] }).catch(() => {
+        // Fallback: Mica on Windows 11 if acrylic isn't available
+        win.setEffects({ effects: [Effect.Mica] }).catch(() => {});
+      });
+    } catch {
+      // Not running in Tauri or API unavailable
+    }
+  }, []);
 
   // Listen for cross-window events (panel changes sync)
   useEffect(() => {
@@ -54,6 +76,12 @@ export const WidgetWindow = () => {
   const days = calendarData?.days || [];
   const visibleBlocks = blocks.filter((b) => b.show_on_desktop);
 
+  // Background tint: use widget_primary_color as the frosted glass tint color
+  // Transparency slider: higher = more transparent
+  // Maps slider 0.1→0.9 to alpha 0.85→0.15
+  const bgAlpha = Math.max(0.15, 0.95 - config.widget_opacity * 0.90);
+  const tintColor = config.widget_primary_color;
+
   const handleOpenPanel = () => { invoke('open_panel_window'); };
 
   const handleToggleComplete = useCallback(async (itemId: string, date: string, currentlyCompleted: boolean) => {
@@ -67,10 +95,14 @@ export const WidgetWindow = () => {
   }, [year, month, completeItem, uncompleteItem, fetchCalendarMonth, fetchBlocks]);
 
   return (
-    <ThemeProvider>
-      <div className="w-screen h-screen flex flex-col overflow-hidden bg-transparent" style={{ opacity: config.widget_opacity }}>
-        {/* Main content: left-right split */}
-        <div className="flex-1 flex flex-row overflow-hidden min-h-0">
+    <ThemeProvider primaryColor={config.widget_primary_color}>
+      <div className="relative w-screen h-screen flex flex-col overflow-hidden bg-transparent" style={{ fontSize: config.widget_font_size + 'px' }}>
+        {/* Frosted glass background: tint color + blur + transparency */}
+        <div className="absolute inset-0 backdrop-blur-2xl" />
+        <div className="absolute inset-0" style={{ backgroundColor: hexToRgba(tintColor, bgAlpha) }} />
+
+        {/* Content layer */}
+        <div className="relative z-10 flex-1 flex flex-row overflow-hidden min-h-0">
           {/* Left: Calendar (~60%) */}
           <div style={{ flex: '3' }} className="flex flex-col overflow-hidden min-w-0">
             <GlassPanel className="mx-2 mt-2 flex-1 flex flex-col overflow-hidden">
@@ -94,7 +126,7 @@ export const WidgetWindow = () => {
                 ))}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+              <div className="flex items-center justify-center h-full text-muted-foreground" style={{ fontSize: '0.85em' }}>
                 没有可见区块，打开主面板添加
               </div>
             )}
@@ -102,7 +134,9 @@ export const WidgetWindow = () => {
         </div>
 
         {/* AI input bar — full width at bottom */}
-        <AIInputBar onOpenPanel={handleOpenPanel} year={year} month={month} />
+        <div className="relative z-10">
+          <AIInputBar onOpenPanel={handleOpenPanel} year={year} month={month} />
+        </div>
       </div>
     </ThemeProvider>
   );

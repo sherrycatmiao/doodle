@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAIStore } from '@/store/useAIStore';
 import { useBlocksStore } from '@/store/useBlocksStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { invoke } from '@tauri-apps/api/core';
 import type { Item } from '@/types';
 import { Bot, Send, Sparkles, X } from 'lucide-react';
@@ -59,7 +60,7 @@ export const AIChatWindow: React.FC = () => {
   };
 
   return (
-    <ThemeProvider>
+    <ThemeProvider primaryColor={useSettingsStore.getState().config.panel_primary_color}>
       <div className="h-screen flex flex-col bg-background text-foreground">
         {/* Header */}
         <header className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0" data-tauri-drag-region>

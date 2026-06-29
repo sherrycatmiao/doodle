@@ -14,14 +14,14 @@ interface Props {
 }
 
 export const CalendarCell: React.FC<Props> = ({ date, dayOfMonth, isCurrentMonth, isToday, items, onToggleComplete }) => {
-  if (dayOfMonth === 0) return <div className="min-h-[85px]" />;
+  if (dayOfMonth === 0) return <div className="min-h-0" />;
 
   const urgentCount = items.filter(i => i.item.priority === 'urgent_important' && !i.completed_on_this_date).length;
 
   return (
     <div
       className={cn(
-        'min-h-[85px] p-0.5 rounded border text-[10px] flex flex-col overflow-hidden transition-colors',
+        'min-h-0 p-0.5 rounded border flex flex-col overflow-hidden transition-colors',
         isToday && 'bg-accent/15 border-accent/30',
         !isCurrentMonth && 'opacity-20',
         isCurrentMonth && !isToday && 'border-transparent hover:bg-accent/10',
@@ -62,7 +62,7 @@ export const CalendarCell: React.FC<Props> = ({ date, dayOfMonth, isCurrentMonth
           </div>
         ))}
         {items.length > 6 && (
-          <div className="text-[8px] pl-3 text-muted-foreground/50">
+          <div className="pl-3 text-muted-foreground/50" style={{ fontSize: '0.75em' }}>
             +{items.length - 6}
           </div>
         )}

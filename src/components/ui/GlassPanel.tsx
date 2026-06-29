@@ -9,15 +9,15 @@ interface Props {
 }
 
 /**
- * Glass morphism panel — kept for the widget's translucent window effect.
- * Uses shadcn Card-like styling with backdrop blur.
+ * Frosted glass morphism panel with layered depth effect.
+ * Uses backdrop blur + subtle gradient overlay for a premium glass look.
  */
 export const GlassPanel: React.FC<Props> = ({ children, className = '', style, onClick }) => {
   return (
     <div
       onClick={onClick}
       className={cn(
-        'rounded-lg bg-card/80 backdrop-blur-xl border border-border/50',
+        'rounded-xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] dark:from-white/[0.06] dark:to-white/[0.01] backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg shadow-black/5',
         className,
       )}
       style={style}

@@ -89,6 +89,7 @@ export interface ThemeConfig {
   widget_opacity: number;
   widget_primary_color: string;
   panel_primary_color: string;
+  widget_font_size: number;
   ai_api_key: string;
   ai_model: string;
   ai_endpoint: string;

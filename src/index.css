@@ -118,3 +118,8 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* Widget font size controlled by settings slider */
+:root {
+  --widget-font-size: 11px;
+}

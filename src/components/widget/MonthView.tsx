@@ -11,11 +11,11 @@ const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
 export const MonthView: React.FC<Props> = ({ days, onToggleComplete }) => {
   return (
-    <div className="px-2 pb-2">
-      <div className="grid grid-cols-7 text-[10px] text-center mb-1 text-muted-foreground/50">
+    <div className="h-full flex flex-col px-2 pb-2">
+      <div className="grid grid-cols-7 text-center mb-1 text-muted-foreground/50 shrink-0" style={{ fontSize: '0.85em' }}>
         {WEEKDAYS.map((d) => (<div key={d}>{d}</div>))}
       </div>
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 flex-1 auto-rows-fr">
         {days.map((day) => (
           <CalendarCell
             key={day.date}

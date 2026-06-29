@@ -3,7 +3,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { THEMES } from './themeConfig';
 
 /** Convert hex color to HSL string for shadcn CSS variables */
-function hexToHsl(hex: string): string {
+export function hexToHsl(hex: string): string {
   let r = parseInt(hex.slice(1, 3), 16) / 255;
   let g = parseInt(hex.slice(3, 5), 16) / 255;
   let b = parseInt(hex.slice(5, 7), 16) / 255;
@@ -28,25 +28,52 @@ function isLight(hex: string): boolean {
   return r * 0.299 + g * 0.587 + b * 0.114 > 160;
 }
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface Props {
+  children: React.ReactNode;
+  /** Which primary color to use. Pass config.panel_primary_color for panel, config.widget_primary_color for widget */
+  primaryColor?: string;
+}
+
+export const ThemeProvider: React.FC<Props> = ({ children, primaryColor }) => {
   const config = useSettingsStore((s) => s.config);
   const theme = THEMES[config.theme] || THEMES.tech;
   const colors = config.mode === 'dark' ? theme.dark : theme.light;
-  const accentColor = config.widget_primary_color || colors.accent;
+  const accentColor = primaryColor || colors.accent;
 
   useEffect(() => {
     const root = document.documentElement;
 
-    // Only set the accent color as shadcn primary
-    const primaryHsl = hexToHsl(accentColor);
-    const primaryFg = isLight(accentColor) ? hexToHsl('#0a0a0a') : hexToHsl('#fafafa');
-    root.style.setProperty('--primary', primaryHsl);
-    root.style.setProperty('--primary-foreground', primaryFg);
-    root.style.setProperty('--ring', primaryHsl);
+    // Inject ALL theme colors as CSS variables so shadcn Tailwind classes pick them up
+    const vars: Record<string, string> = {
+      '--background': hexToHsl(colors.bg),
+      '--foreground': hexToHsl(colors.text),
+      '--card': hexToHsl(colors.bgAlt),
+      '--card-foreground': hexToHsl(colors.text),
+      '--popover': hexToHsl(colors.bgAlt),
+      '--popover-foreground': hexToHsl(colors.text),
+      '--muted': hexToHsl(colors.bgAlt),
+      '--muted-foreground': hexToHsl(colors.textSecondary),
+      '--accent': hexToHsl(colors.accent),
+      '--accent-foreground': hexToHsl(colors.text),
+      '--secondary': hexToHsl(colors.bgAlt),
+      '--secondary-foreground': hexToHsl(colors.text),
+      '--border': hexToHsl(colors.border),
+      '--input': hexToHsl(colors.border),
+      '--ring': hexToHsl(accentColor),
+      '--primary': hexToHsl(accentColor),
+      '--primary-foreground': isLight(accentColor) ? hexToHsl('#0a0a0a') : hexToHsl('#fafafa'),
+    };
+
+    for (const [key, value] of Object.entries(vars)) {
+      root.style.setProperty(key, value);
+    }
+
+    // Set widget font size
+    root.style.setProperty('--widget-font-size', `${config.widget_font_size}px`);
 
     // Toggle dark class
     root.classList.toggle('dark', config.mode === 'dark');
-  }, [config.theme, config.mode, config.widget_primary_color]);
+  }, [colors, accentColor, config.mode, config.widget_font_size]);
 
   return <>{children}</>;
 };

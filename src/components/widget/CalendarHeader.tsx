@@ -18,7 +18,7 @@ export const CalendarHeader: React.FC<Props> = ({ year, month, onPrevMonth, onNe
         <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground/70 hover:text-foreground" onClick={onPrevMonth}>
           <ChevronLeft className="h-3.5 w-3.5" />
         </Button>
-        <span className="text-sm font-medium text-foreground/80 min-w-[7rem] text-center select-none">
+        <span className="font-medium text-foreground/80 min-w-[7rem] text-center select-none" style={{ fontSize: '1.1em' }}>
           {year}年 {MONTH_NAMES[month - 1]}
         </span>
         <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground/70 hover:text-foreground" onClick={onNextMonth}>

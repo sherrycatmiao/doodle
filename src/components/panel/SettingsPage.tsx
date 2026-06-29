@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
-  const { config, setTheme, setMode, setWidgetOpacity, setWidgetColor, setPanelColor, setAiKey, setSetting } = useSettingsStore();
+  const { config, setTheme, setMode, setWidgetOpacity, setWidgetColor, setPanelColor, setWidgetFontSize, setAiKey, setSetting } = useSettingsStore();
   const [apiKey, setApiKey] = useState(config.ai_api_key);
   const [aiModel, setAiModel] = useState(config.ai_model);
   const [aiEndpoint, setAiEndpoint] = useState(config.ai_endpoint);
@@ -209,6 +209,27 @@ export const SettingsPage: React.FC = () => {
 
             <Separator />
 
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">字体大小</Label>
+                <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                  {config.widget_font_size}px
+                </span>
+              </div>
+              <Slider
+                value={[config.widget_font_size]}
+                min={9} max={18} step={1}
+                onValueChange={([v]) => setWidgetFontSize(v)}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[9px] text-muted-foreground/50">
+                <span>9px</span>
+                <span>18px</span>
+              </div>
+            </div>
+
+            <Separator />
+
             <div className="grid grid-cols-[5rem_1fr] items-center gap-2">
               <Label className="text-xs text-muted-foreground">桌面主色</Label>
               <div className="flex items-center gap-3">
@@ -275,7 +296,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="font-medium text-foreground">基本信息</div>
                 <div>主题: {config.theme}</div>
                 <div>模式: {config.mode}</div>
-                <div>透明度: {Math.round(config.widget_opacity * 100)}%</div>
+                <div>透明度: {Math.round(config.widget_opacity * 100)}% 透明</div>
               </div>
               <div className="space-y-1">
                 <div className="font-medium text-foreground">样式值</div>

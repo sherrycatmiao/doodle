@@ -7,24 +7,33 @@ import { BlockCardGrid } from './BlockCardGrid';
 import { SettingsPage } from './SettingsPage';
 import { useBlocksStore } from '@/store/useBlocksStore';
 import { useItemsStore } from '@/store/useItemsStore';
-import { onDataChanged } from '@/lib/events';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { onDataChanged, onSettingsChanged } from '@/lib/events';
 import { NotebookPen, LayoutDashboard, Settings } from 'lucide-react';
 
 export const PanelWindow: React.FC = () => {
   const [tab, setTab] = React.useState('blocks');
   const [activeBlockId, setActiveBlockId] = React.useState<string | null>(null);
   const blocks = useBlocksStore((s) => s.blocks);
+  const config = useSettingsStore((s) => s.config);
   const fetchBlocks = useBlocksStore((s) => s.fetchBlocks);
   const fetchItems = useItemsStore((s) => s.fetchItems);
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings);
   const activeBlock = blocks.find((b) => b.id === activeBlockId) || null;
 
-  // Listen for cross-window data changes (e.g. widget side changes)
+  // Listen for cross-window data changes
   React.useEffect(() => {
     const unlisten = onDataChanged(() => {
       fetchBlocks();
       fetchItems();
     });
-    return () => { unlisten.then(fn => fn()); };
+    const unlistenSettings = onSettingsChanged(() => {
+      fetchSettings();
+    });
+    return () => {
+      unlisten.then(fn => fn());
+      unlistenSettings.then(fn => fn());
+    };
   }, []);
 
   const handleSelectBlock = (id: string) => {
@@ -36,7 +45,7 @@ export const PanelWindow: React.FC = () => {
   };
 
   return (
-    <ThemeProvider>
+    <ThemeProvider primaryColor={config.panel_primary_color}>
       <div className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
         {/* Header */}
         <header className="flex items-center justify-between h-11 px-4 shrink-0 border-b border-border">
