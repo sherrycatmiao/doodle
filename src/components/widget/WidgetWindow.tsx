@@ -11,7 +11,7 @@ import { useBlocksStore } from '@/store/useBlocksStore';
 import { useItemsStore } from '@/store/useItemsStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { invoke } from '@tauri-apps/api/core';
-import { onDataChanged, onSettingsChanged } from '@/lib/events';
+import { onSettingsChanged } from '@/lib/events';
 
 /** Convert hex to rgba */
 function hexToRgba(hex: string, alpha: number): string {
@@ -25,6 +25,7 @@ export const WidgetWindow = () => {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [inputOverlayVisible, setInputOverlayVisible] = useState(false);
   const blocks = useBlocksStore((s) => s.blocks);
   const fetchBlocks = useBlocksStore((s) => s.fetchBlocks);
   const calendarData = useItemsStore((s) => s.calendarData);
@@ -42,7 +43,6 @@ export const WidgetWindow = () => {
     try {
       const win = getCurrentWindow();
       win.setEffects({ effects: [Effect.Acrylic] }).catch(() => {
-        // Fallback: Mica on Windows 11 if acrylic isn't available
         win.setEffects({ effects: [Effect.Mica] }).catch(() => {});
       });
     } catch {
@@ -50,35 +50,51 @@ export const WidgetWindow = () => {
     }
   }, []);
 
-  // Listen for cross-window events (panel changes sync)
+  // Listen for cross-window events.
+  // Widget is the primary data source — settings changes need a refetch,
+  // but data changes are already applied optimistically in the store.
   useEffect(() => {
-    const unlisten = onDataChanged(() => {
-      fetchBlocks();
-      fetchCalendarMonth(year, month);
-    });
     const unlistenSettings = onSettingsChanged(() => {
       fetchSettings();
     });
     return () => {
-      unlisten.then(fn => fn());
       unlistenSettings.then(fn => fn());
     };
-  }, [year, month]);
+  }, []);
 
-  // Listen for Alt+Space global shortcut to focus AI input
+  // Listen for global shortcut to show widget + focus AI input
   useEffect(() => {
     const unlisten = listen('focus-ai-input', () => {
-      (window as any).__focusAIInput?.();
+      setInputOverlayVisible(true);
     });
     return () => { unlisten.then(fn => fn()); };
   }, []);
 
+  // Global Esc handler: dismiss overlay and repin widget to desktop
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && inputOverlayVisible) {
+        setInputOverlayVisible(false);
+        invoke('repin_to_desktop').catch(() => {});
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [inputOverlayVisible]);
+
+  // When overlay opens, auto-focus the AI input
+  useEffect(() => {
+    if (inputOverlayVisible) {
+      const timer = setTimeout(() => {
+        (window as any).__focusAIInput?.();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [inputOverlayVisible]);
+
   const days = calendarData?.days || [];
   const visibleBlocks = blocks.filter((b) => b.show_on_desktop);
 
-  // Background tint: use widget_primary_color as the frosted glass tint color
-  // Transparency slider: higher = more transparent
-  // Maps slider 0.1→0.9 to alpha 0.85→0.15
   const bgAlpha = Math.max(0.15, 0.95 - config.widget_opacity * 0.90);
   const tintColor = config.widget_primary_color;
 
@@ -90,14 +106,14 @@ export const WidgetWindow = () => {
     } else {
       await completeItem(itemId, date);
     }
-    fetchCalendarMonth(year, month);
-    fetchBlocks();
-  }, [year, month, completeItem, uncompleteItem, fetchCalendarMonth, fetchBlocks]);
+    // Store handles optimistic update — no refetch needed
+  }, [completeItem, uncompleteItem]);
 
   return (
     <ThemeProvider primaryColor={config.widget_primary_color}>
-      <div className="relative w-screen h-screen flex flex-col overflow-hidden bg-transparent" style={{ fontSize: config.widget_font_size + 'px' }}>
-        {/* Frosted glass background: tint color + blur + transparency */}
+      <style>{`body { background: transparent !important; }`}</style>
+      <div className="relative w-screen h-screen flex flex-col overflow-hidden bg-transparent" style={{ fontSize: config.widget_font_size + 'px', color: config.widget_text_color || undefined }}>
+        {/* Frosted glass background: tint color + blur + transparency — always visible for Acrylic blur effect */}
         <div className="absolute inset-0 backdrop-blur-2xl" />
         <div className="absolute inset-0" style={{ backgroundColor: hexToRgba(tintColor, bgAlpha) }} />
 
@@ -133,9 +149,26 @@ export const WidgetWindow = () => {
           </div>
         </div>
 
+        {/* Esc hint — top-left corner, only visible in overlay mode */}
+        {inputOverlayVisible && (
+          <div className="absolute top-3 left-4 z-30 text-[10px] text-white/50 pointer-events-none select-none">
+            Esc 退出
+          </div>
+        )}
+
         {/* AI input bar — full width at bottom */}
-        <div className="relative z-10">
-          <AIInputBar onOpenPanel={handleOpenPanel} year={year} month={month} />
+        <div className={`relative ${inputOverlayVisible ? 'z-30' : 'z-10'}`}>
+          <AIInputBar
+            onOpenPanel={handleOpenPanel}
+            year={year}
+            month={month}
+          />
+          {/* Extra "记录" hint when overlay is visible */}
+          {inputOverlayVisible && (
+            <div className="text-center pb-2 text-[10px] text-white/40 pointer-events-none select-none">
+              回车记录
+            </div>
+          )}
         </div>
       </div>
     </ThemeProvider>

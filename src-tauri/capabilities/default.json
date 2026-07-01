@@ -18,6 +18,7 @@
     "core:webview:allow-internal-toggle-devtools",
     "opener:default",
     "shell:default",
-    "global-shortcut:default"
+    "global-shortcut:default",
+    "dialog:default"
   ]
 }

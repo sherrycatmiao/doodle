@@ -24,16 +24,19 @@ export const useBlocksStore = create<BlocksState>((set) => ({
     const block = await invoke<Block>('create_block', { name, icon, color });
     set((s) => ({ blocks: [...s.blocks, block] }));
     emitDataChanged();
+    invoke('sync_to_markdown').catch(() => {});
     return block;
   },
   updateBlock: async (id, updates) => {
     const block = await invoke<Block>('update_block', { id, ...updates });
     set((s) => ({ blocks: s.blocks.map((b) => (b.id === id ? block : b)) }));
     emitDataChanged();
+    invoke('sync_to_markdown').catch(() => {});
   },
   deleteBlock: async (id) => {
     await invoke('delete_block', { id });
     set((s) => ({ blocks: s.blocks.filter((b) => b.id !== id) }));
     emitDataChanged();
+    invoke('sync_to_markdown').catch(() => {});
   },
 }));

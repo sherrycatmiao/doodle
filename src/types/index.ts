@@ -88,11 +88,14 @@ export interface ThemeConfig {
   mode: ThemeMode;
   widget_opacity: number;
   widget_primary_color: string;
+  widget_text_color: string;
   panel_primary_color: string;
   widget_font_size: number;
   ai_api_key: string;
   ai_model: string;
   ai_endpoint: string;
+  md_file_path: string;
+  hotkey_shortcut: string;
 }
 
 export type IconName =

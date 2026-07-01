@@ -1,5 +1,5 @@
 use crate::db::get_connection;
-use crate::models::CompletionRecord;
+use crate::models::{CompletionRecord, Item};
 use tauri::AppHandle;
 use uuid::Uuid;
 
@@ -60,49 +60,70 @@ pub fn complete_item(
     })
 }
 
-/// Uncomplete an item: restore it to its original block
+/// Uncomplete an item: delete ALL completion records and restore to original block.
+/// Returns the restored Item so the frontend can update without refetching.
 #[tauri::command]
-pub fn uncomplete_item(app: AppHandle, item_id: String, date: String) -> Result<(), String> {
+pub fn uncomplete_item(app: AppHandle, item_id: String, _date: String) -> Result<Item, String> {
     let conn = get_connection(&app);
     let conn = conn.lock().map_err(|e| e.to_string())?;
 
-    // Get the original_block_id from the completion record being removed
+    // Get the original_block_id from ANY completion record for this item
     let original_block_id: Option<String> = conn
         .query_row(
-            "SELECT original_block_id FROM completion_records WHERE item_id = ?1 AND completed_date = ?2",
-            rusqlite::params![item_id, date],
+            "SELECT original_block_id FROM completion_records WHERE item_id = ?1 AND original_block_id != '' LIMIT 1",
+            rusqlite::params![item_id],
             |row| row.get(0),
         )
         .ok();
 
-    // Delete the completion record
+    // Delete ALL completion records for this item
     conn.execute(
-        "DELETE FROM completion_records WHERE item_id = ?1 AND completed_date = ?2",
-        rusqlite::params![item_id, date],
+        "DELETE FROM completion_records WHERE item_id = ?1",
+        rusqlite::params![item_id],
     )
     .map_err(|e| e.to_string())?;
 
-    // Check if there are remaining completion records
-    let count: i32 = conn
-        .query_row(
-            "SELECT COUNT(*) FROM completion_records WHERE item_id = ?1",
-            rusqlite::params![item_id],
-            |r| r.get(0),
+    // Restore to original block, set active
+    let restore_block = if let Some(ref orig) = original_block_id {
+        Some(orig.clone())
+    } else {
+        conn.query_row(
+            "SELECT id FROM blocks WHERE name != '已完成' ORDER BY sort_order LIMIT 1",
+            [],
+            |row| row.get(0),
+        ).ok()
+    };
+
+    if let Some(ref bid) = restore_block {
+        conn.execute(
+            "UPDATE items SET block_id = ?1, status = 'active', completed_at = NULL WHERE id = ?2",
+            rusqlite::params![bid, item_id],
         )
         .map_err(|e| e.to_string())?;
-
-    if count == 0 {
-        // Restore to original block, set active
-        if let Some(ref orig_block) = original_block_id {
-            conn.execute(
-                "UPDATE items SET block_id = ?1, status = 'active', completed_at = NULL WHERE id = ?2",
-                rusqlite::params![orig_block, item_id],
-            )
-            .map_err(|e| e.to_string())?;
-        }
     }
 
-    Ok(())
+    // Return the restored item
+    let item = conn.query_row(
+        "SELECT id, block_id, content, item_type, priority, status, due_date, start_date, is_date_linked, completed_at, created_at, updated_at FROM items WHERE id = ?1",
+        rusqlite::params![item_id],
+        |row| Ok(Item {
+            id: row.get(0)?,
+            block_id: row.get(1)?,
+            content: row.get(2)?,
+            item_type: row.get(3)?,
+            priority: row.get(4)?,
+            status: row.get(5)?,
+            due_date: row.get(6)?,
+            start_date: row.get(7)?,
+            is_date_linked: row.get::<_, i32>(8)? != 0,
+            completed_at: row.get(9)?,
+            created_at: row.get(10)?,
+            updated_at: row.get(11)?,
+        }),
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(item)
 }
 
 #[tauri::command]

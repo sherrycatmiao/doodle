@@ -215,10 +215,11 @@ export const BlockDetailArea: React.FC<Props> = ({ block, onBack }) => {
                 <div className="mt-1 space-y-0.5 max-h-32 overflow-y-auto">
                   {completedItems.map((item) => (
                     <div key={item.id} className="flex items-center gap-1.5 py-1 px-1 rounded group hover:bg-accent/30">
-                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0"
-                        onClick={() => handleToggleComplete(item)}>
-                        <Check className="h-3 w-3 text-green-500" />
-                      </Button>
+                      <Checkbox
+                        checked={true}
+                        onCheckedChange={() => handleToggleComplete(item)}
+                        className="h-4 w-4 shrink-0 bg-green-500 border-green-500"
+                      />
                       <span className="text-[11px] line-through truncate text-muted-foreground/50 flex-1">
                         {item.content}
                       </span>

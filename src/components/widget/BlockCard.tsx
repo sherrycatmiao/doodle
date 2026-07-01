@@ -1,7 +1,8 @@
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useItemsStore } from '@/store/useItemsStore';
-import type { Block } from '@/types';
+import type { Block, Item } from '@/types';
 import { PRIORITY_COLORS } from '@/components/theme/themeConfig';
 import { GripVertical } from 'lucide-react';
 
@@ -19,16 +20,24 @@ export const BlockCard: React.FC<Props> = ({ block }) => {
     fetchItems();
   }, []);
 
-  const blockItems = items
-    .filter((i) => i.block_id === block.id && i.status === 'active')
-    .slice(0, 8);
+  // Show all items for this block (both active & completed)
+  const blockItems = React.useMemo(() => {
+    const actives = items.filter((i) => i.block_id === block.id && i.status === 'active');
+    const completed = items.filter((i) => i.block_id === block.id && i.status === 'completed');
+    return [...actives, ...completed].slice(0, 8);
+  }, [items, block.id]);
 
-  const handleToggleComplete = async (itemId: string, currentlyCompleted: boolean) => {
+  const totalCount = React.useMemo(
+    () => items.filter((i) => i.block_id === block.id).length,
+    [items, block.id],
+  );
+
+  const handleToggleComplete = async (item: Item) => {
     const today = new Date().toISOString().slice(0, 10);
-    if (currentlyCompleted) {
-      await uncompleteItem(itemId, today);
+    if (item.status === 'completed') {
+      await uncompleteItem(item.id, today);
     } else {
-      await completeItem(itemId, today);
+      await completeItem(item.id, item.due_date || today);
     }
   };
 
@@ -39,29 +48,35 @@ export const BlockCard: React.FC<Props> = ({ block }) => {
         <GripVertical className="h-3 w-3 text-muted-foreground/30 shrink-0" />
         <div className="w-2 h-2 rounded-full shrink-0 ring-1 ring-black/5" style={{ backgroundColor: block.color }} />
         <span className="font-medium text-card-foreground/80 truncate flex-1">{block.name}</span>
-        <span className="text-muted-foreground/50 tabular-nums" style={{ fontSize: '0.85em' }}>{blockItems.length}</span>
+        <span className="text-muted-foreground/50 tabular-nums" style={{ fontSize: '0.85em' }}>{totalCount}</span>
       </div>
 
       {/* Items */}
       <div className="flex-1 overflow-y-auto px-2.5 pb-2 space-y-0.5 min-h-0">
-        {blockItems.map((item) => (
-          <div key={item.id} className="flex items-center gap-1.5 py-0.5">
-            <Checkbox
-              checked={false}
-              onCheckedChange={() => handleToggleComplete(item.id, false)}
-              className="h-3 w-3 rounded-full shrink-0 [&>span>svg]:h-[7px] [&>span>svg]:w-[7px]"
-              style={{ borderColor: PRIORITY_COLORS[item.priority] || '#a3a3a3' }}
-            />
-            <span className="truncate leading-tight text-card-foreground/70">
-              {item.content}
-            </span>
-            {item.due_date && (
-              <span className="shrink-0 text-muted-foreground/40" style={{ fontSize: '0.75em' }}>
-                {item.due_date.slice(5)}
+        {blockItems.map((item) => {
+          const isCompleted = item.status === 'completed';
+          return (
+            <Label key={item.id} className="flex items-center gap-1.5 py-0.5 cursor-pointer">
+              <Checkbox
+                checked={isCompleted}
+                onCheckedChange={() => handleToggleComplete(item)}
+                className="h-3 w-3 rounded-full shrink-0 [&>span>svg]:h-[7px] [&>span>svg]:w-[7px]"
+                style={{
+                  borderColor: isCompleted ? '#22c55e' : (PRIORITY_COLORS[item.priority] || '#a3a3a3'),
+                  backgroundColor: isCompleted ? '#22c55e' : undefined,
+                }}
+              />
+              <span className={isCompleted ? 'truncate leading-tight line-through text-muted-foreground/40' : 'truncate leading-tight text-card-foreground/70'}>
+                {item.content}
               </span>
-            )}
-          </div>
-        ))}
+              {item.due_date && (
+                <span className="shrink-0 text-muted-foreground/40" style={{ fontSize: '0.75em' }}>
+                  {item.due_date.slice(5)}
+                </span>
+              )}
+            </Label>
+          );
+        })}
         {blockItems.length === 0 && (
           <div className="italic text-muted-foreground/30 py-1" style={{ fontSize: '0.85em' }}>暂无内容</div>
         )}

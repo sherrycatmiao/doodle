@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useSettingsStore } from '../../store/useSettingsStore';
-import { THEMES } from './themeConfig';
 
 /** Convert hex color to HSL string for shadcn CSS variables */
 export function hexToHsl(hex: string): string {
@@ -36,44 +35,33 @@ interface Props {
 
 export const ThemeProvider: React.FC<Props> = ({ children, primaryColor }) => {
   const config = useSettingsStore((s) => s.config);
-  const theme = THEMES[config.theme] || THEMES.tech;
-  const colors = config.mode === 'dark' ? theme.dark : theme.light;
-  const accentColor = primaryColor || colors.accent;
 
   useEffect(() => {
     const root = document.documentElement;
 
-    // Inject ALL theme colors as CSS variables so shadcn Tailwind classes pick them up
-    const vars: Record<string, string> = {
-      '--background': hexToHsl(colors.bg),
-      '--foreground': hexToHsl(colors.text),
-      '--card': hexToHsl(colors.bgAlt),
-      '--card-foreground': hexToHsl(colors.text),
-      '--popover': hexToHsl(colors.bgAlt),
-      '--popover-foreground': hexToHsl(colors.text),
-      '--muted': hexToHsl(colors.bgAlt),
-      '--muted-foreground': hexToHsl(colors.textSecondary),
-      '--accent': hexToHsl(colors.accent),
-      '--accent-foreground': hexToHsl(colors.text),
-      '--secondary': hexToHsl(colors.bgAlt),
-      '--secondary-foreground': hexToHsl(colors.text),
-      '--border': hexToHsl(colors.border),
-      '--input': hexToHsl(colors.border),
-      '--ring': hexToHsl(accentColor),
-      '--primary': hexToHsl(accentColor),
-      '--primary-foreground': isLight(accentColor) ? hexToHsl('#0a0a0a') : hexToHsl('#fafafa'),
-    };
+    // Toggle dark class — this lets index.css :root/.dark rules set shadcn defaults
+    root.classList.toggle('dark', config.mode === 'dark');
 
-    for (const [key, value] of Object.entries(vars)) {
-      root.style.setProperty(key, value);
+    // Only override primary + ring when a primaryColor is explicitly passed.
+    // This lets Panel/Welcome pick the user's accent while keeping shadcn's
+    // default neutral palette for all other variables.
+    if (primaryColor) {
+      root.style.setProperty('--primary', hexToHsl(primaryColor));
+      root.style.setProperty('--ring', hexToHsl(primaryColor));
+      root.style.setProperty(
+        '--primary-foreground',
+        isLight(primaryColor) ? hexToHsl('#0a0a0a') : hexToHsl('#fafafa'),
+      );
     }
 
-    // Set widget font size
+    // Widget-only overrides: font size & text colour (harmless on Panel)
     root.style.setProperty('--widget-font-size', `${config.widget_font_size}px`);
-
-    // Toggle dark class
-    root.classList.toggle('dark', config.mode === 'dark');
-  }, [colors, accentColor, config.mode, config.widget_font_size]);
+    if (config.widget_text_color) {
+      root.style.setProperty('--widget-text-color', config.widget_text_color);
+    } else {
+      root.style.removeProperty('--widget-text-color');
+    }
+  }, [config.mode, config.widget_font_size, config.widget_text_color, primaryColor]);
 
   return <>{children}</>;
 };

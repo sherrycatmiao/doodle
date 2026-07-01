@@ -1,5 +1,6 @@
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import type { ItemWithCompletion } from '@/types';
 import { PRIORITY_COLORS } from '@/components/theme/themeConfig';
 import { cn } from '@/lib/utils';
@@ -37,30 +38,34 @@ export const CalendarCell: React.FC<Props> = ({ date, dayOfMonth, isCurrentMonth
         {dayOfMonth}
       </div>
       <div className="flex-1 space-y-px overflow-hidden">
-        {items.slice(0, 6).map((iwc) => (
-          <div
-            key={iwc.item.id}
-            className="flex items-center gap-1 rounded-sm hover:bg-accent/20 px-0.5 py-px cursor-pointer"
-            onClick={() => onToggleComplete?.(iwc.item.id, date, iwc.completed_on_this_date)}
-            title={iwc.item.content}
-          >
-            <Checkbox
-              checked={iwc.completed_on_this_date}
-              className="h-3 w-3 border shrink-0 [&>span>svg]:h-[7px] [&>span>svg]:w-[7px]"
-              style={{
-                borderColor: iwc.completed_on_this_date ? '#22c55e' : (PRIORITY_COLORS[iwc.item.priority] || '#737373'),
-              }}
-            />
-            <span
-              className={cn(
-                'truncate leading-tight',
-                iwc.completed_on_this_date && 'line-through text-muted-foreground/40',
-              )}
+        {items.slice(0, 6).map((iwc) => {
+          const isCompleted = iwc.completed_on_this_date;
+          return (
+            <Label
+              key={iwc.item.id}
+              className="flex items-center gap-1 rounded-sm hover:bg-accent/20 px-0.5 py-px cursor-pointer"
+              title={iwc.item.content}
             >
-              {iwc.item.content}
-            </span>
-          </div>
-        ))}
+              <Checkbox
+                checked={isCompleted}
+                onCheckedChange={() => onToggleComplete?.(iwc.item.id, date, isCompleted)}
+                className="h-3 w-3 shrink-0"
+                style={{
+                  borderColor: isCompleted ? '#22c55e' : (PRIORITY_COLORS[iwc.item.priority] || '#737373'),
+                  backgroundColor: isCompleted ? '#22c55e' : undefined,
+                }}
+              />
+              <span
+                className={cn(
+                  'truncate leading-tight',
+                  isCompleted && 'line-through text-muted-foreground/40',
+                )}
+              >
+                {iwc.item.content}
+              </span>
+            </Label>
+          );
+        })}
         {items.length > 6 && (
           <div className="pl-3 text-muted-foreground/50" style={{ fontSize: '0.75em' }}>
             +{items.length - 6}

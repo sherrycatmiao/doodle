@@ -122,4 +122,10 @@
 /* Widget font size controlled by settings slider */
 :root {
   --widget-font-size: 11px;
+  --widget-text-color: '';
+}
+
+/* Widget text color override */
+.widget-text-color {
+  color: var(--widget-text-color);
 }

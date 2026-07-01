@@ -78,6 +78,26 @@ pub fn init_database(app: &AppHandle) -> Result<()> {
         )?;
     }
 
+    // ── Migrations for existing DBs ──
+
+    // Migrate: add original_block_id to completion_records if missing
+    {
+        let mut stmt = conn
+            .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='completion_records'")
+            .unwrap();
+        let schema: Option<String> = stmt
+            .query_row([], |row| row.get(0))
+            .unwrap_or(None);
+        if let Some(s) = schema {
+            if !s.contains("original_block_id") {
+                conn.execute_batch(
+                    "ALTER TABLE completion_records ADD COLUMN original_block_id TEXT NOT NULL DEFAULT '';",
+                )
+                .expect("Migration: add original_block_id");
+            }
+        }
+    }
+
     // Insert default settings
     let setting_count: i32 = conn
         .query_row("SELECT COUNT(*) FROM settings", [], |r| r.get(0))
@@ -92,7 +112,8 @@ pub fn init_database(app: &AppHandle) -> Result<()> {
                 ('panel_primary_color', '#6366f1'),
                 ('ai_api_key', ''),
                 ('ai_model', 'claude-sonnet-4-6'),
-                ('ai_endpoint', 'https://api.anthropic.com/v1/messages');",
+                ('ai_endpoint', 'https://api.anthropic.com/v1/messages'),
+                ('md_file_path', '');",
         )?;
     }
 
